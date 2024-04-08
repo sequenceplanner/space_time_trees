@@ -1,0 +1,15 @@
+[package]
+name = "space_time_trees"
+version = "0.1.0"
+authors = ["Endre Erős <endre.eros@chalmersindustriteknik.se>"]
+edition = "2021"
+
+[dependencies]
+nalgebra = "0.32.5"
+futures = "0.3.30"
+log = "0.4.21"
+tokio = { version = "1.36.0", features = ["full"] }
+
+[[bin]]
+name = "space_tree"
+path = "src/space_tree.rs"
