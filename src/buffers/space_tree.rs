@@ -25,7 +25,6 @@ pub async fn maintain_space_tree_buffer(
         });
 
         *buffer.lock().unwrap() = updated_buffer;
-
         tokio::time::sleep(Duration::from_millis(maintain_rate)).await;
     }
 }
@@ -81,7 +80,7 @@ mod tests {
 
     #[tokio::test(start_paused = true)]
     async fn space_tree_buffer_is_maintained() {
-        let mut interval = interval(Duration::from_millis(10));
+        let mut interval = interval(Duration::from_millis(50));
 
         let test_buffer = HashMap::from([
             (
@@ -125,7 +124,7 @@ mod tests {
             };
         });
 
-        let _ = timeout(Duration::from_millis(200), async move {
+        let _ = timeout(Duration::from_millis(500), async move {
             loop {
                 interval.tick().await;
                 let counter_local = counter_clone.lock().unwrap().clone();
@@ -137,13 +136,17 @@ mod tests {
             }
         })
         .await;
-        let buffer_acc_clone_local = buffer_acc_clone.lock().unwrap().clone();
-        let truth_vec = buffer_acc_clone_local.windows(2).map(|x| {
-            let prev_test_transform = x[0].get("test_transform").unwrap();
-            let next_test_transform = x[1].get("test_transform").unwrap();
-            println!("{:?}", prev_test_transform.time_stamp);
-            next_test_transform.time_stamp >= prev_test_transform.time_stamp
-        }).collect::<Vec<bool>>();
+        let mut buffer_acc_clone_local = buffer_acc_clone.lock().unwrap().clone();
+        buffer_acc_clone_local.drain(0..1);
+        let truth_vec = buffer_acc_clone_local
+            .windows(2)
+            .map(|x| {
+                let prev_test_transform = x[0].get("test_transform").unwrap();
+                let next_test_transform = x[1].get("test_transform").unwrap();
+                println!("{:?}", prev_test_transform.time_stamp);
+                next_test_transform.time_stamp > prev_test_transform.time_stamp
+            })
+            .collect::<Vec<bool>>();
         assert!(truth_vec.iter().all(|f| *f));
     }
 }
