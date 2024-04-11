@@ -1,7 +1,7 @@
 use crate::TransformStamped;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use tokio::time::{interval, Duration, Instant, Interval};
+use tokio::time::{Duration, Instant};
 
 pub async fn maintain_space_tree_buffer(
     buffer: &Arc<Mutex<HashMap<String, TransformStamped>>>,

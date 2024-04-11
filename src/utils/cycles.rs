@@ -1,9 +1,5 @@
 use crate::*;
-use nalgebra::{Isometry, Isometry3};
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use std::thread::current;
-use tokio::time::{interval, Duration, Instant, Interval};
 
 pub static MAX_TRANSFORM_CHAIN: u64 = 1000;
 
@@ -48,11 +44,9 @@ mod tests {
 
     use nalgebra::Isometry3;
     use std::collections::HashMap;
-    use std::sync::{Arc, Mutex};
-    use tokio::time::{interval, timeout, Duration, Instant};
+    use tokio::time::Instant;
 
     use crate::*;
-    use log::*;
 
     fn dummy_1_frame() -> TransformStamped {
         TransformStamped {

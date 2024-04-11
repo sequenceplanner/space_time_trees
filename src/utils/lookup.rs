@@ -35,6 +35,7 @@ pub fn isometry_chain_product(vec: Vec<Isometry3<f64>>) -> Isometry3<f64> {
 //     }
 // }
 
+// Search the tree upstream to the root
 pub fn parent_to_root(
     parent_frame_id: &str,
     root_frame_id: &str,
@@ -55,7 +56,6 @@ pub fn parent_to_root(
                         break Some(path);
                     } else {
                         current_parent = parent.parent_frame_id.to_string();
-                        // continue;
                     }
                 }
                 None => break None,
@@ -70,53 +70,51 @@ pub fn parent_to_root(
 }
 
 // BFS to get the path to the child...
-// TODO: add max depth check though just in case.
-// pub fn root_to_child(
-//     child_frame_id: &str,
-//     root_frame_id: &str,
-//     buffer: &HashMap<String, TransformStamped>,
-// ) -> Option<Isometry3<f64>> {
-//     let mut stack = vec![];
-//     match get_frame_children(root_frame_id, buffer) {
-//         Some(children) => children
-//             .iter()
-//             .for_each(|(k, v)| stack.push((k.to_string(), vec![k.to_string()], vec![v.transform]))),
-//         None => return None,
-//     }
+pub fn root_to_child(
+    child_frame_id: &str,
+    root_frame_id: &str,
+    buffer: &HashMap<String, TransformStamped>,
+) -> Option<Isometry3<f64>> {
+    let mut length = 0;
+    let mut stack = vec![];
+    get_frame_children(root_frame_id, buffer)
+        .iter()
+        .for_each(|(k, v)| stack.push((k.to_string(), vec![k.to_string()], vec![v.transform])));
 
-//     let res = loop {
-//         match stack.pop() {
-//             Some((frame, path, chain)) => {
-//                 if frame == child_frame_id {
-//                     break Some(chain);
-//                 } else {
-//                     match get_frame_children(&frame, buffer) {
-//                         Some(children) => {
-//                             children.iter().for_each(|(k, v)| {
-//                                 let mut prev_path = path.clone();
-//                                 let mut prev_chain = chain.clone();
-//                                 prev_path.push(k.clone());
-//                                 prev_chain.push(v.transform);
-//                                 stack.insert(
-//                                     0,
-//                                     (k.to_string(), prev_path.clone(), prev_chain.clone()),
-//                                 )
-//                             });
-//                             continue;
-//                         }
-//                         None => break None,
-//                     }
-//                 }
-//             }
-//             None => break None,
-//         }
-//     };
+    let res = loop {
+        if length >= MAX_TRANSFORM_CHAIN {
+            break None;
+        } else {
+            length = length + 1;
+            match stack.pop() {
+                Some((frame, path, chain)) => {
+                    if frame == child_frame_id {
+                        break Some(chain);
+                    } else {
+                        get_frame_children(&frame, buffer)
+                            .iter()
+                            .for_each(|(k, v)| {
+                                let mut prev_path = path.clone();
+                                let mut prev_chain = chain.clone();
+                                prev_path.push(k.clone());
+                                prev_chain.push(v.transform);
+                                stack.insert(
+                                    0,
+                                    (k.to_string(), prev_path.clone(), prev_chain.clone()),
+                                )
+                            })
+                    }
+                }
+                None => break None,
+            }
+        }
+    };
 
-//     match res {
-//         Some(chain) => Some(isometry_chain_product(chain)),
-//         None => None,
-//     }
-// }
+    match res {
+        Some(chain) => Some(isometry_chain_product(chain)),
+        None => None,
+    }
+}
 
 // The frame whose children we are searching for don't have to exist in the transform buffer
 pub fn get_frame_children(
@@ -307,12 +305,12 @@ mod tests {
         //         /  \
         //       d2    d3
 
-
         assert_eq!(
             get_frame_children("world", &buffer)
                 .iter()
                 .map(|x| x.0.clone())
-                .collect::<Vec<String>>().sort(),
+                .collect::<Vec<String>>()
+                .sort(),
             vec!("dummy_2", "dummy_3").sort()
         );
     }
