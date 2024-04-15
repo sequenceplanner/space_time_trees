@@ -11,7 +11,6 @@ pub fn is_cyclic(frame: &str, buffer: &HashMap<String, TransformStamped>) -> boo
     loop {
         match stack.pop() {
             Some(current_frame) => {
-                println!("{}", current_frame);
                 if visited.contains(&current_frame) && buffer.contains_key(&current_frame) {
                     break true;
                 } else {
@@ -37,6 +36,16 @@ pub fn is_cyclic_all(frames: &HashMap<String, TransformStamped>) -> bool {
         }
     }
     false
+}
+
+// check if adding the frame to the tree would produce a cycle
+pub fn check_would_produce_cycle(
+    frame: &TransformStamped,
+    buffer: &HashMap<String, TransformStamped>,
+) -> bool {
+    let mut buffer_local = buffer.clone();
+    buffer_local.insert(frame.child_frame_id.clone(), frame.clone());
+    is_cyclic_all(&buffer_local)
 }
 
 #[cfg(test)]
@@ -123,7 +132,7 @@ mod tests {
         );
 
         //          w
-        //          |
+        //          
         //          d1
         //          ||
         //          d2
@@ -170,7 +179,7 @@ mod tests {
         );
 
         //          w
-        //          |
+        //          
         //          d1
         //         /  \
         //       d2 -- d3
@@ -272,6 +281,51 @@ mod tests {
 
         let res = is_cyclic_all(&buffer);
         assert_eq!(res, false);
+    }
+
+    #[test]
+    fn test_would_produce_cycle() {
+        let mut buffer = HashMap::<String, TransformStamped>::new();
+        buffer.insert("dummy_1".to_string(), dummy_1_frame());
+        buffer.insert("dummy_2".to_string(), dummy_2_frame());
+        buffer.insert("dummy_3".to_string(), dummy_3_frame());
+
+        //          w
+        //          |
+        //          d1
+        //         /
+        //       d2 -- d3
+
+        let res = is_cyclic("world", &buffer);
+        assert_eq!(res, false);
+        let res = is_cyclic("dummy_1", &buffer);
+        assert_eq!(res, false);
+        let res = is_cyclic("dummy_2", &buffer);
+        assert_eq!(res, false);
+        let res = is_cyclic("dummy_3", &buffer);
+        assert_eq!(res, false);
+
+        assert_eq!(check_would_produce_cycle(
+            &TransformStamped {
+                time_stamp: Instant::now(),
+                parent_frame_id: "dummy_4".to_string(),
+                child_frame_id: "dummy_1".to_string(),
+                transform: Isometry3::default(),
+                json_metadata: String::default(),
+            }, 
+            &buffer), false
+        );
+
+        assert_eq!(check_would_produce_cycle(
+            &TransformStamped {
+                time_stamp: Instant::now(),
+                parent_frame_id: "dummy_3".to_string(),
+                child_frame_id: "dummy_1".to_string(),
+                transform: Isometry3::default(),
+                json_metadata: String::default(),
+            }, 
+            &buffer), true
+        );
     }
 
 
