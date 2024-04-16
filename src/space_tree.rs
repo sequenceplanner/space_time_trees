@@ -32,6 +32,7 @@ async fn main() -> () {
 
     let buffer_clone = buffer.clone();
     if args.visualize {
+        println!("ASDFASDFASDF");
         tokio::task::spawn(async move {
             match vizualize_tree(&buffer_clone, VISUALIZE_TREE_REFRESH_RATE).await {
                 Ok(()) => (),

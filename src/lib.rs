@@ -10,3 +10,4 @@ pub use crate::utils::manipulation::*;
 pub use crate::utils::loading::*;
 pub use crate::utils::lookup::*;
 pub use crate::utils::cycles::*;
+pub use crate::utils::treeviz::*;
