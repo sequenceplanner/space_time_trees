@@ -73,13 +73,13 @@ mod tests {
     use tokio::time::{timeout, Duration, Instant};
 
     use rand::distributions::{Distribution, Uniform};
-    use rand::Rng;
+    use rand::{thread_rng, Rng};
     use termtree::Tree;
 
     use crate::*;
 
     #[test]
-    fn test_vizualize_tree() {
+    fn test_build_tree_recursive() {
         let mut transforms: HashMap<String, TransformStamped> = HashMap::new();
         transforms.insert(
             "child1".to_string(),
@@ -148,7 +148,7 @@ mod tests {
     }
 
     #[test]
-    fn test_maximum_recursion_depth() {
+    fn test_tree_maximum_recursion_depth() {
         let mut transforms: HashMap<String, TransformStamped> = HashMap::new();
         let max_depth = MAX_RECURSION_DEPTH + 1; // We exceed MAX_DEPTH to trigger the limit
         let parent_id_base = "node";
@@ -226,7 +226,6 @@ mod tests {
                     if *remaining_nodes != 0 {
                         *remaining_nodes -= 1;
                     }
-                    
                 }
             }
         }
@@ -234,12 +233,15 @@ mod tests {
         tree
     }
 
-    // #[test]
-    // fn test_visualize_tree() {
-    //     let depth = rng.gen::<u8>();
-    //     let num_nodes = rng.gen::<u8>();
-    //     let tree = generate_random_tree(depth, num_nodes);
-    //     println!("{}", tree);
-    // }
+    #[test]
+    fn test_visualize_random_tree() {
+        let mut rng = thread_rng();
+        let depth = rng.gen_range(1..20);
+        let num_nodes = rng.gen_range(1..20);
+        let tree = generate_random_tree(depth as usize, num_nodes as usize);
+        println!("{}", tree);
+    }
+
+    // TODO: need a test for the async function
 
 }

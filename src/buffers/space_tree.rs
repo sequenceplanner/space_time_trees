@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tokio::time::{Duration, Instant};
 
+
+// TODO: actually, this should just remove stale frames, the time stamps should be updated by the broadcasters
 pub async fn maintain_space_tree_buffer(
     buffer: &Arc<Mutex<HashMap<String, TransformStamped>>>,
     maintain_rate: u64,
