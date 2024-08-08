@@ -6,9 +6,6 @@ use crate::*;
 
 use termtree::Tree;
 
-pub static MAX_TRANSFORM_CHAIN: u64 = 1000;
-pub static MAX_RECURSION_DEPTH: u64 = 1000;
-
 pub fn build_tree_recursive(
     node_id: &str,
     transforms: &HashMap<String, TransformStamped>,
@@ -67,10 +64,9 @@ pub async fn vizualize_tree(
 #[cfg(test)]
 mod tests {
 
-    use nalgebra::{Isometry3, Quaternion, Translation, UnitQuaternion, Vector3};
+    use nalgebra::Isometry3;
     use std::collections::HashMap;
-    use std::sync::{Arc, Mutex};
-    use tokio::time::{timeout, Duration, Instant};
+    use tokio::time::Instant;
 
     use rand::distributions::{Distribution, Uniform};
     use rand::{thread_rng, Rng};
@@ -195,7 +191,7 @@ mod tests {
 
     fn generate_random_tree(depth: usize, num_nodes: usize) -> Tree<String> {
         let mut rng = rand::thread_rng();
-        let mut current_depth = 1; // We start at depth 1 with the root node
+        let current_depth = 1; // We start at depth 1 with the root node
         build_random_tree(&mut rng, depth, &mut (num_nodes - 1), current_depth)
     }
 
