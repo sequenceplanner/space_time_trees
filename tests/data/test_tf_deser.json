@@ -1,0 +1,18 @@
+{
+    "parents_frame_id": "parent",
+    "child_frame_id": "child_7",
+    "transform": {
+        "translation": {
+            "x": -7.005284128073446,
+            "y": 2.545570443380612,
+            "z": -9.924695086323382
+        },
+        "rotation": {
+            "x": -0.9366799359516378,
+            "y": -0.04448082205317161,
+            "z": 0.24008951032244807,
+            "w": -0.47573652803367006
+        }
+    },
+    "json_metadata": "{\"metadata_key\": \"metadata_value_35\"}"
+}

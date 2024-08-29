@@ -144,7 +144,7 @@ pub fn get_frame_children(
 #[cfg(test)]
 mod tests {
 
-    use nalgebra::{Isometry3, Quaternion, Translation, UnitComplex, UnitQuaternion, Vector3};
+    use nalgebra::{Isometry3, Quaternion, Translation, UnitQuaternion, Vector3};
     use std::collections::HashMap;
     use std::sync::{Arc, Mutex};
     use tokio::time::Instant;
