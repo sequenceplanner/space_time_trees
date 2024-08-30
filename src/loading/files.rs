@@ -37,88 +37,124 @@ pub fn list_frames_in_dir(path: &str) -> Result<Vec<String>, Box<dyn std::error:
 }
 
 pub fn load_new_scenario(scenario: &Vec<String>) -> HashMap<String, TransformStamped> {
-    let mut transforms_stamped: HashMap<String, TransformStamped> = HashMap::new();
+    let mut transforms_stamped = HashMap::new();
 
     for path in scenario {
-        match File::open(path) {
-            Ok(file) => {
-                let reader = BufReader::new(file);
-                match serde_json::from_reader(reader) {
-                    Ok::<Value, _>(json) => {
-                        let child_frame_id = match json.get("child_frame_id") {
-                            Some(value) => match value.as_str() {
-                                Some(child_frame_id) => child_frame_id,
-                                None => {
-                                    log::warn!(target: "space_time_trees", "Field 'child_frame_id' should be a string.");
-                                    continue;
-                                }
-                            },
-                            None => {
-                                log::warn!(target: "space_time_trees", "Json file doens't contain field 'child_frame_id'.");
-                                continue;
-                            }
-                        };
-                        let parent_frame_id = match json.get("parent_frame_id") {
-                            Some(value) => match value.as_str() {
-                                Some(parent_frame_id) => parent_frame_id,
-                                None => {
-                                    log::warn!(target: "space_time_trees", "Field 'parent_frame_id' should be a string.");
-                                    continue;
-                                }
-                            },
-                            None => {
-                                log::warn!(target: "space_time_trees", "Json file doens't contain field 'parent_frame_id'.");
-                                continue;
-                            }
-                        };
-                        let transform: JsonTransform = match json.get("transform") {
-                            Some(value) => match serde::Deserialize::deserialize(value) {
-                                Ok(transform) => transform,
-                                Err(e) => {
-                                    log::warn!(target: "space_time_trees", "Deserializing the field 'transform' filed with: {}.", e);
-                                    continue;
-                                }
-                            },
-                            None => {
-                                log::warn!(target: "space_time_trees", "Json file doens't contain field 'transform'.");
-                                continue;
-                            }
-                        };
-                        let json_metadata = match json.get("json_metadata") {
-                            Some(value) => match value.as_str() {
-                                Some(json_metadata) => json_metadata.to_string(), // unstructured for now
-                                None => {
-                                    log::warn!(target: "space_time_trees", "No metadata detected for frame: {}.'.", child_frame_id);
-                                    log::warn!(target: "space_time_trees", "Empty metadata loaded for frame: {}.'.", child_frame_id);
-                                    "".to_string()
-                                }
-                            },
-                            None => "".to_string(),
-                        };
+        let json = match load_json_from_file(path) {
+            Some(json) => json,
+            None => continue,
+        };
 
-                        transforms_stamped.insert(
-                            child_frame_id.to_string(),
-                            TransformStamped {
-                                time_stamp: Instant::now(),
-                                child_frame_id: child_frame_id.to_string(),
-                                parent_frame_id: parent_frame_id.to_string(),
-                                transform: json_transform_to_isometry(transform),
-                                json_metadata,
-                            },
-                        );
-                    }
-                    Err(e) => {
-                        log::warn!(target: "space_time_trees", "Deserialization failed with: '{}'.", e)
-                    }
-                }
-            }
-            Err(e) => {
-                log::warn!(target: "space_time_trees", "Opening json file failed with: '{}'.", e)
-            }
-        }
+        let child_frame_id = match extract_string_field(&json, "child_frame_id") {
+            Some(id) => id,
+            None => continue,
+        };
+
+        let parent_frame_id = match extract_string_field(&json, "parent_frame_id") {
+            Some(id) => id,
+            None => continue,
+        };
+
+        let transform = match extract_transform(&json) {
+            Some(transform) => transform,
+            None => continue,
+        };
+
+        let json_metadata = match extract_string_field(&json, "json_metadata") {
+            Some(metadata) => metadata,
+            None => "".to_string(),
+        };
+
+        transforms_stamped.insert(
+            child_frame_id.clone(),
+            TransformStamped {
+                time_stamp: Instant::now(),
+                child_frame_id,
+                parent_frame_id,
+                transform: json_transform_to_isometry(transform),
+                json_metadata,
+            },
+        );
     }
 
     transforms_stamped
+}
+
+fn load_json_from_file(path: &str) -> Option<Value> {
+    match File::open(path) {
+        Ok(file) => {
+            let reader = BufReader::new(file);
+            match serde_json::from_reader(reader) {
+                Ok(json) => Some(json),
+                Err(e) => {
+                    log::warn!(target: "space_time_trees", 
+                        concat!(
+                            "Deserialization failed with: '{}'. ",
+                            "The JSON file may be malformed or contain ",
+                            "unexpected data."
+                        ),
+                        e
+                    );
+                    None
+                }
+            }
+        },
+        Err(e) => {
+            log::warn!(target: "space_time_trees", 
+                concat!(
+                    "Opening json file failed with: '{}'. ",
+                    "Please check if the file path is correct and ",
+                    "you have sufficient permissions."
+                ),
+                e
+            );
+            None
+        }
+    }
+}
+
+fn extract_string_field(json: &Value, field: &str) -> Option<String> {
+    match json.get(field).and_then(|v| v.as_str()) {
+        Some(value) => Some(value.to_string()),
+        None => {
+            log::warn!(target: "space_time_trees", 
+                concat!(
+                    "Invalid or missing '{}'. ",
+                    "Ensure the '{}' field is present and ",
+                    "is a valid string."
+                ),
+                field, field
+            );
+            None
+        }
+    }
+}
+
+fn extract_transform(json: &Value) -> Option<JsonTransform> {
+    match json.get("transform") {
+        Some(value) => match serde_json::from_value(value.clone()) {
+            Ok(transform) => Some(transform),
+            Err(e) => {
+                log::warn!(target: "space_time_trees", 
+                    concat!(
+                        "Failed to deserialize 'transform' field: '{}'. ",
+                        "Ensure the 'transform' field is correctly formatted."
+                    ),
+                    e
+                );
+                None
+            }
+        },
+        None => {
+            log::warn!(target: "space_time_trees", 
+                concat!(
+                    "Missing 'transform' field. ",
+                    "Ensure the 'transform' field is present in the JSON."
+                )
+            );
+            None
+        }
+    }
 }
 
 #[test]
@@ -140,9 +176,9 @@ fn test_load_and_deserialize_from_file() {
 
     match frames {
         Ok(frames) => {
-            println!("Frames: {:?}", frames);
+            // println!("Frames: {:?}", frames);
             let scenario = load_new_scenario(&frames);
-            println!("{:?}", scenario);
+            println!("{:#?}", scenario);
         }
         _ => panic!(),
     }
